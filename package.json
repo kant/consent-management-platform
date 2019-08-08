@@ -5,7 +5,8 @@
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "scripts": {
-        "build": "tsc",
+        "copy-helpers": "cp -r ./resources/ ./lib/resources/",
+        "build": "tsc && yarn copy-helpers",
         "test": "jest --config jestconfig.json",
         "lint": "eslint src/**/*.ts",
         "tsc": "tsc --noEmit",

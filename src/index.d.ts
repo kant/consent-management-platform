@@ -1,12 +1,4 @@
-type ShortVendorList = {
-    version: number;
-    purposeIDs: number[];
-    purposesByVID: { [String]: number[] };
-    legIntPurposesByVID: { [String]: number[] };
-    featuresIdsByVID: { [String]: number[] };
-};
-
-type ConsentData = {
+type ConsentMetaData = {
     cookieVersion: number;
     cmpId: number;
     cmpVersion: number;
@@ -14,26 +6,32 @@ type ConsentData = {
     created: Date;
     lastUpdated: Date;
     consentScreen: number;
-    consentLanguage: string;
+    publisherPurposeVersion?: number;
 };
 
-type Provider = {};
+type VendorConsentResponse = {
+    metadata: ConsentMetaData;
+    gdprApplies: boolean;
+    hasGlobalScope: boolean;
+    purposeConsents: { [key: number]: boolean };
+    vendorConsents: { [key: number]: boolean };
+};
+
+type ConsentDataResponse = {
+    consentData?: string;
+    gdprApplies: boolean;
+    hasGlobalScope: boolean;
+};
+
+type PingResponse = {
+    // cmpLoaded: boolean;
+    // gdprAppliesGlobally: boolean;
+};
 
 type CommandCallback = (
     res: VendorConsentResponse | ConsentDataResponse | PingResponse,
     ok?: boolean,
 ) => void;
-
-type VendorConsentResponse = ConsentData & {
-    maxVendorId: number;
-    purposeConsents: { [String]: number };
-    vendorConsents: { [String]: number };
-};
-
-type PingResponse = {
-    cmpLoaded: boolean;
-    gdprAppliesGlobally: boolean;
-};
 
 type Command = {
     callId: string;
@@ -50,3 +48,13 @@ type MessageData = {
         parameter: string;
     };
 };
+
+/** from frontend * */
+
+// type ShortVendorList = {
+//     version: number;
+//     purposeIDs: number[];
+//     purposesByVID: { [String]: number[] };
+//     legIntPurposesByVID: { [String]: number[] };
+//     featuresIdsByVID: { [String]: number[] };
+// };

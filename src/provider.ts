@@ -18,13 +18,26 @@ const eventListeners: { [s: string]: ((obj: {}) => void)[] } = {};
 let isLoaded = false;
 let cmpReady = false;
 
-const getMetadata = () => {};
+const getMetadata = (): ConsentMetaData => {
+    // cookieVersion: number;
+    // created: Date;
+    // lastUpdated: Date;
+    // cmpId: number;
+    // cmpVersion: number;
+    // consentScreen: number;
+    // vendorListVersion: number;
+    // publisherPurposeVersion: number; // for the PublisherConsent metadata only
+};
 
 const getPurposeConsentsObj = (): { [key: number]: boolean } => {};
 
 const getVendorConsentsObj = (
     vendorIds: number[],
 ): { [key: number]: boolean } => {};
+
+const getConsentDataEncoded = (
+    consentStringVersion?: string,
+): string | null => {};
 
 const getVendorConsents = (vendorIds: number[]): VendorConsentResponse => {
     return {
@@ -36,6 +49,14 @@ const getVendorConsents = (vendorIds: number[]): VendorConsentResponse => {
     };
 };
 
+const getConsentData = (consentStringVersion?: string): ConsentDataResponse => {
+    return {
+        consentData: getConsentDataEncoded(consentStringVersion),
+        gdprApplies: defaultConfig.gdprApplies,
+        hasGlobalScope: defaultConfig.storeConsentGlobally,
+    };
+};
+
 const commands = {
     getVendorConsents: (
         vendorIds: number[],
@@ -44,7 +65,13 @@ const commands = {
         const vendorConsents = getVendorConsents(vendorIds);
         callback(vendorConsents, true);
     },
-    getConsentData: (): void => {},
+    getConsentData: (
+        consentStringVersion?: string,
+        callback: CommandCallback = () => {},
+    ): void => {
+        const consentData = getConsentData(consentStringVersion);
+        callback(consentData, true);
+    },
     getVendorList: (): void => {},
     ping: (): void => {},
     addEventListener: (event: string, callback: (res: {}) => void): void => {

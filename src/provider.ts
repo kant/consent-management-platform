@@ -1,11 +1,5 @@
 // import { shortVendorList as shortVendorListData } from './vendor-list/short-vendor-list';
 
-const defaultConfig = {
-    storeConsentGlobally: false,
-    storePublisherData: false,
-    logging: false,
-    gdprApplies: true,
-};
 const CMP_GLOBAL_NAME = '__cmp';
 const CMP_ID = 112;
 const CMP_VERSION = 1.1;
@@ -13,7 +7,16 @@ const COOKIE_VERSION = 1.1; // TODO: Verify this
 const COOKIE_NAME = 'euconsent';
 const COOKIE_MAX_AGE = 33696000;
 
-let commandQueue: Command[] = [];
+const defaultConfig = {
+    storeConsentGlobally: false,
+    storePublisherData: false,
+    logging: false,
+    gdprApplies: true,
+};
+const commandQueue: Command[] = [];
+const eventListeners: { [s: string]: ((obj: {}) => void)[] } = {};
+let isLoaded = false;
+let cmpReady = false;
 
 const getMetadata = () => {};
 
@@ -44,7 +47,17 @@ const commands = {
     getConsentData: (): void => {},
     getVendorList: (): void => {},
     ping: (): void => {},
-    addEventListener: (): void => {},
+    addEventListener: (event: string, callback: (res: {}) => void): void => {
+        const eventSet = eventListeners[event] || [];
+        eventSet.push(callback);
+        eventListeners[event] = eventSet;
+
+        if (event === 'isLoaded' && isLoaded) {
+            callback({ event });
+        } else if (event === 'cmpReady' && cmpReady) {
+            callback({ event });
+        }
+    },
 };
 
 const processCommand = (
@@ -64,36 +77,41 @@ const processCommand = (
 };
 
 const processCommandQueue = (): void => {
-    const queue = [...commandQueue];
+    commandQueue.reverse();
 
-    if (queue.length) {
-        // log.info(`Process ${queue.length} queued commands`);
+    let i = commandQueue.length - 1;
 
-        commandQueue = [];
+    while (i >= 0) {
+        const {
+            callId,
+            command,
+            parameter,
+            callback,
+            event,
+        } = commandQueue.splice(i, 1)[0];
 
-        queue.forEach(
-            ({ callId, command, parameter, callback, event }): void => {
-                if (event) {
-                    processCommand(command, parameter, (returnValue): void => {
-                        event.source.postMessage(
-                            {
-                                __cmpReturn: {
-                                    callId,
-                                    command,
-                                    returnValue,
-                                },
-                            },
-                            event.origin,
-                        );
-                    });
-                } else {
-                    processCommand(command, parameter, callback);
-                }
-            },
-        );
+        if (event) {
+            processCommand(command, parameter, (returnValue): void => {
+                event.source.postMessage(
+                    {
+                        __cmpReturn: {
+                            callId,
+                            command,
+                            returnValue,
+                        },
+                    },
+                    event.origin,
+                );
+            });
+        } else {
+            processCommand(command, parameter, callback);
+        }
+
+        i -= 1;
     }
 };
 
+// TODO: TEST THIS
 const receiveMessage = ({ data, origin, source }: MessageEvent): void => {
     if (data instanceof Object) {
         const { __cmpCall: cmp }: MessageData = data;
@@ -120,8 +138,7 @@ const receiveMessage = ({ data, origin, source }: MessageEvent): void => {
     }
 };
 
-const eventListeners: { [s: string]: ((obj: {}) => void)[] } = {};
-
+// TODO: TEST THIS
 const notify = (event: string, data?: MessageData): void => {
     // log.info(`Notify event: ${event}`);
     const eventSet = eventListeners[event] || [];
@@ -153,11 +170,13 @@ export const init = (): void => {
         // Expose `receiveMessage` on the CMP implementation
         window[CMP_GLOBAL_NAME].receiveMessage = receiveMessage;
 
+        isLoaded = true;
         notify('isLoaded');
 
         // Execute previously queued command
         processCommandQueue();
 
+        cmpReady = true;
         notify('cmpReady');
     }
 };
